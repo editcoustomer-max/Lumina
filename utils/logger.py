@@ -1,51 +1,44 @@
-"""Logger utility for Lumina"""
+"""Logging utilities"""
 
 import logging
 import sys
 from pathlib import Path
-from datetime import datetime
+from typing import Optional
 
 
-def setup_logger(name: str, log_file: str = None, level: str = "INFO") -> logging.Logger:
+def setup_logger(name: str, log_file: Optional[str] = None, level: str = 'INFO') -> logging.Logger:
     """
-    Setup a logger with console and optional file output.
+    Setup logger with file and console handlers.
     
     Args:
-        name: Logger name (typically __name__)
-        log_file: Optional path to log file
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        name: Logger name
+        log_file: Optional log file path
+        level: Logging level
     
     Returns:
-        Configured logger instance
+        Configured logger
     """
     logger = logging.getLogger(name)
-    logger.setLevel(getattr(logging, level.upper(), logging.INFO))
+    logger.setLevel(getattr(logging, level.upper()))
     
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(getattr(logging, level.upper(), logging.INFO))
+    console_handler.setLevel(getattr(logging, level.upper()))
     
     # Formatter
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
-    # File handler (optional)
+    # File handler (if log_file provided)
     if log_file:
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setLevel(getattr(logging, level.upper(), logging.INFO))
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(getattr(logging, level.upper()))
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     
     return logger
-
-
-def get_logger(name: str) -> logging.Logger:
-    """Get or create a logger."""
-    return logging.getLogger(name)

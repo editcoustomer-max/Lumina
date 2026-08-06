@@ -1,163 +1,90 @@
-"""General helper utilities"""
+"""Helper functions"""
 
-import os
-import json
 import yaml
+import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
-import torch
+from typing import Dict, Any
+import time
+
+logger = logging.getLogger(__name__)
 
 
-def load_yaml(path: str) -> Dict[str, Any]:
+def load_yaml(filepath: str) -> Dict[str, Any]:
     """
-    Load a YAML configuration file.
+    Load YAML configuration file.
     
     Args:
-        path: Path to YAML file
+        filepath: Path to YAML file
     
     Returns:
-        Dictionary with loaded configuration
+        Parsed YAML as dictionary
     """
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+    try:
+        with open(filepath, 'r') as f:
+            config = yaml.safe_load(f)
+        logger.info(f"Loaded configuration from {filepath}")
+        return config
+    except FileNotFoundError:
+        logger.error(f"Configuration file not found: {filepath}")
+        raise
+    except yaml.YAMLError as e:
+        logger.error(f"Error parsing YAML file: {e}")
+        raise
 
 
-def save_yaml(data: Dict[str, Any], path: str):
+def save_yaml(data: Dict[str, Any], filepath: str):
     """
-    Save configuration to YAML file.
+    Save dictionary to YAML file.
     
     Args:
-        data: Configuration dictionary
-        path: Path to save YAML file
+        data: Dictionary to save
+        filepath: Output file path
     """
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, 'w') as f:
+    Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+    with open(filepath, 'w') as f:
         yaml.dump(data, f, default_flow_style=False)
+    logger.info(f"Saved configuration to {filepath}")
 
 
-def load_json(path: str) -> Dict[str, Any]:
+def ensure_dir(directory: str):
     """
-    Load a JSON file.
+    Ensure directory exists.
     
     Args:
-        path: Path to JSON file
-    
-    Returns:
-        Loaded data
+        directory: Directory path
     """
-    with open(path, 'r') as f:
-        return json.load(f)
-
-
-def save_json(data: Dict[str, Any], path: str):
-    """
-    Save data to JSON file.
-    
-    Args:
-        data: Data to save
-        path: Path to save JSON file
-    """
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
-
-
-def ensure_dir(path: str) -> Path:
-    """
-    Ensure directory exists, create if needed.
-    
-    Args:
-        path: Directory path
-    
-    Returns:
-        Path object
-    """
-    p = Path(path)
-    p.mkdir(parents=True, exist_ok=True)
-    return p
-
-
-def get_file_size(path: str) -> int:
-    """
-    Get file size in bytes.
-    
-    Args:
-        path: File path
-    
-    Returns:
-        File size in bytes
-    """
-    return os.path.getsize(path)
-
-
-def format_size(size_bytes: int) -> str:
-    """
-    Format bytes to human-readable format.
-    
-    Args:
-        size_bytes: Size in bytes
-    
-    Returns:
-        Formatted size string
-    """
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if size_bytes < 1024:
-            return f"{size_bytes:.2f} {unit}"
-        size_bytes /= 1024
-    return f"{size_bytes:.2f} PB"
-
-
-def count_parameters(model: torch.nn.Module) -> int:
-    """
-    Count total parameters in a model.
-    
-    Args:
-        model: PyTorch model
-    
-    Returns:
-        Total number of parameters
-    """
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-
-def get_model_info(model: torch.nn.Module) -> Dict[str, Any]:
-    """
-    Get detailed model information.
-    
-    Args:
-        model: PyTorch model
-    
-    Returns:
-        Dictionary with model information
-    """
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
-    return {
-        "total_parameters": total_params,
-        "trainable_parameters": trainable_params,
-        "non_trainable_parameters": total_params - trainable_params,
-        "parameter_size_mb": (total_params * 4) / (1024 * 1024),  # 4 bytes per float32
-    }
+    Path(directory).mkdir(parents=True, exist_ok=True)
 
 
 def format_time(seconds: float) -> str:
     """
-    Format seconds to human-readable time.
+    Format seconds into human readable time.
     
     Args:
-        seconds: Time in seconds
+        seconds: Number of seconds
     
     Returns:
         Formatted time string
     """
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
+    hours, remainder = divmod(int(seconds), 3600)
+    minutes, seconds = divmod(remainder, 60)
     
     if hours > 0:
-        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+        return f"{hours}h {minutes}m {seconds}s"
     elif minutes > 0:
-        return f"{minutes:02d}:{secs:02d}"
+        return f"{minutes}m {seconds}s"
     else:
-        return f"{secs}s"
+        return f"{seconds}s"
+
+
+def count_parameters(model) -> int:
+    """
+    Count trainable parameters in model.
+    
+    Args:
+        model: PyTorch model
+    
+    Returns:
+        Number of trainable parameters
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

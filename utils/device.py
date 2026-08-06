@@ -1,4 +1,4 @@
-"""Device detection and management"""
+"""Device utilities"""
 
 import torch
 import logging
@@ -6,51 +6,31 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_device(device: str = "auto") -> str:
+def get_device(device: str = 'auto') -> torch.device:
     """
-    Detect and return the best available device.
+    Get torch device.
     
     Args:
-        device: Device type - "cpu", "cuda", "mps", or "auto"
+        device: Device specification (cpu, cuda, auto)
     
     Returns:
-        Device string ("cpu" or "cuda" or "mps")
+        torch.device instance
     """
-    if device != "auto":
-        return device
+    if device == 'auto':
+        if torch.cuda.is_available():
+            device_str = 'cuda'
+            logger.info(f"CUDA available. Using GPU")
+        else:
+            device_str = 'cpu'
+            logger.info(f"CUDA not available. Using CPU")
+    else:
+        device_str = device
     
-    if torch.cuda.is_available():
-        logger.info(f"CUDA device detected: {torch.cuda.get_device_name(0)}")
-        logger.info(f"CUDA version: {torch.version.cuda}")
-        return "cuda"
+    device_obj = torch.device(device_str)
     
-    # Check for Apple Metal Performance Shaders
-    if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        logger.info("Apple Metal Performance Shaders (MPS) detected")
-        return "mps"
+    # Log device info
+    if device_obj.type == 'cuda':
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+        logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
     
-    logger.info("No GPU detected, using CPU")
-    return "cpu"
-
-
-def get_device_info() -> dict:
-    """
-    Get detailed device information.
-    
-    Returns:
-        Dictionary with device information
-    """
-    info = {
-        "device": get_device(),
-        "cuda_available": torch.cuda.is_available(),
-        "mps_available": hasattr(torch.backends, 'mps') and torch.backends.mps.is_available(),
-        "cpu_count": torch.get_num_threads(),
-    }
-    
-    if info["cuda_available"]:
-        info["cuda_device_count"] = torch.cuda.device_count()
-        info["cuda_device_name"] = torch.cuda.get_device_name(0)
-        info["cuda_version"] = torch.version.cuda
-        info["cudnn_version"] = torch.backends.cudnn.version()
-    
-    return info
+    return device_obj
