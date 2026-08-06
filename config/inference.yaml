@@ -1,0 +1,32 @@
+# Lumina - Inference Configuration
+# Used for text generation and chat
+
+model:
+  embedding_dim: 256
+  hidden_dim: 512
+  num_heads: 8
+  num_layers: 4
+  ff_dim: 2048
+  dropout: 0.1
+  vocab_size: 10000
+  max_seq_length: 512
+  activation: gelu
+
+inference:
+  # Sampling parameters
+  temperature: 0.7      # Lower = more deterministic, higher = more random
+  top_k: 50             # Keep top 50 most likely tokens
+  top_p: 0.9            # Nucleus sampling: keep tokens with cumulative prob >= 0.9
+  max_length: 256       # Maximum generation length
+  sampling_strategy: "top_p"  # Options: greedy, temperature, top_k, top_p
+
+checkpointing:
+  checkpoint_dir: "checkpoints/"
+
+logging:
+  level: "INFO"
+  console: true
+
+device:
+  device: "auto"
+  num_workers: 0

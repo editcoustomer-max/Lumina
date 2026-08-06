@@ -1,0 +1,62 @@
+# Lumina - Training Configuration
+# Lightweight config for quick training and experimentation
+
+model:
+  embedding_dim: 256
+  hidden_dim: 512
+  num_heads: 8
+  num_layers: 4
+  ff_dim: 2048
+  dropout: 0.1
+  vocab_size: 10000
+  max_seq_length: 512
+  activation: gelu
+
+tokenizer:
+  type: "bpe"
+  vocab_size: 10000
+  save_tokenizer: true
+
+dataset:
+  data_dir: "datasets/"
+  train_split: 0.9
+  seq_length: 512
+  shuffle: true
+
+training:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.0005
+  optimizer: "adamw"
+  scheduler: "warmup"
+  warmup_steps: 1000
+  gradient_clip: 1.0
+  weight_decay: 0.01
+  checkpoint_every: 500
+  validate_every: 100
+  num_val_batches: 10
+  mixed_precision: false
+
+inference:
+  temperature: 0.7
+  top_k: 50
+  top_p: 0.9
+  max_length: 256
+  sampling_strategy: "top_p"
+
+logging:
+  level: "INFO"
+  log_file: "logs/training.log"
+  console: true
+  log_interval: 10
+
+checkpointing:
+  checkpoint_dir: "checkpoints/"
+  keep_last_n: 3
+  save_optimizer: true
+  save_training_state: true
+
+device:
+  device: "auto"
+  mixed_precision: false
+  num_workers: 4

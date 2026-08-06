@@ -1,0 +1,142 @@
+# Lumina - Default Configuration
+# Copy and modify this file for your specific needs
+
+model:
+  # Embedding dimension
+  embedding_dim: 256
+  
+  # Hidden dimension (width of transformer blocks)
+  hidden_dim: 512
+  
+  # Number of attention heads
+  num_heads: 8
+  
+  # Number of transformer blocks
+  num_layers: 4
+  
+  # Feed-forward network dimension
+  ff_dim: 2048
+  
+  # Dropout rate
+  dropout: 0.1
+  
+  # Vocabulary size (will be determined from tokenizer)
+  vocab_size: 10000
+  
+  # Maximum sequence length
+  max_seq_length: 512
+  
+  # Activation function
+  activation: gelu
+
+tokenizer:
+  # Tokenizer type: "character", "bpe", or "wordpiece"
+  type: "bpe"
+  
+  # Vocabulary size for tokenizer
+  vocab_size: 10000
+  
+  # Whether to save tokenizer after training
+  save_tokenizer: true
+
+dataset:
+  # Path to datasets folder
+  data_dir: "datasets/"
+  
+  # Train/validation split ratio
+  train_split: 0.9
+  
+  # Sequence length for training
+  seq_length: 512
+  
+  # Whether to shuffle data
+  shuffle: true
+
+training:
+  # Batch size
+  batch_size: 32
+  
+  # Number of training epochs
+  epochs: 10
+  
+  # Learning rate
+  learning_rate: 0.0005
+  
+  # Optimizer: adam, sgd, adamw
+  optimizer: "adamw"
+  
+  # Learning rate scheduler: constant, linear, cosine, warmup
+  scheduler: "warmup"
+  
+  # Warmup steps
+  warmup_steps: 1000
+  
+  # Gradient clipping
+  gradient_clip: 1.0
+  
+  # Weight decay (L2 regularization)
+  weight_decay: 0.01
+  
+  # Save checkpoint every N steps
+  checkpoint_every: 500
+  
+  # Validate every N steps
+  validate_every: 100
+  
+  # Number of validation batches
+  num_val_batches: 10
+  
+  # Whether to use mixed precision training
+  mixed_precision: false
+
+inference:
+  # Temperature for sampling
+  temperature: 0.7
+  
+  # Top-k sampling
+  top_k: 50
+  
+  # Top-p (nucleus) sampling
+  top_p: 0.9
+  
+  # Maximum generation length
+  max_length: 256
+  
+  # Sampling strategy: greedy, temperature, top_k, top_p
+  sampling_strategy: "top_p"
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  
+  # Log file path
+  log_file: "logs/lumina.log"
+  
+  # Print to console
+  console: true
+  
+  # Log interval (every N steps)
+  log_interval: 10
+
+checkpointing:
+  # Directory to save checkpoints
+  checkpoint_dir: "checkpoints/"
+  
+  # Keep last N checkpoints (0 = keep all)
+  keep_last_n: 3
+  
+  # Save optimizer state
+  save_optimizer: true
+  
+  # Save training state
+  save_training_state: true
+
+device:
+  # Device: cpu, cuda, mps
+  device: "auto"
+  
+  # Use mixed precision
+  mixed_precision: false
+  
+  # Number of workers for data loading
+  num_workers: 4
