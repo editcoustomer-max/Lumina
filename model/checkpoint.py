@@ -1,133 +1,114 @@
-"""Model checkpointing utilities"""
+"""Model checkpoint management"""
 
 import torch
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
-from model.transformer import TransformerLM
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 
 class CheckpointManager:
     """
-    Manage model checkpoints (saving and loading).
+    Manage model checkpoints.
     """
     
     @staticmethod
-    def save_checkpoint(filepath: str, model: TransformerLM, optimizer: torch.optim.Optimizer = None,
-                       epoch: int = 0, step: int = 0, metrics: Dict[str, float] = None, **kwargs):
+    def save_checkpoint(filepath: str, model: torch.nn.Module, 
+                       optimizer: Optional[torch.optim.Optimizer] = None,
+                       epoch: int = 0, step: int = 0, 
+                       metrics: Optional[Dict[str, float]] = None):
         """
         Save model checkpoint.
         
         Args:
             filepath: Path to save checkpoint
             model: Model to save
-            optimizer: Optional optimizer state
+            optimizer: Optional optimizer to save
             epoch: Current epoch
-            step: Current step
+            step: Current training step
             metrics: Optional metrics dictionary
-            **kwargs: Additional data to save
         """
         Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         
         checkpoint = {
             'model_state_dict': model.state_dict(),
-            'model_config': model.get_config(),
+            'model_config': model.get_config() if hasattr(model, 'get_config') else None,
             'epoch': epoch,
             'step': step,
-            'metrics': metrics or {},
+            'metrics': metrics or {}
         }
         
-        if optimizer is not None:
+        if optimizer:
             checkpoint['optimizer_state_dict'] = optimizer.state_dict()
         
-        # Add any additional data
-        checkpoint.update(kwargs)
-        
         torch.save(checkpoint, filepath)
-        logger.info(f"Saved checkpoint to {filepath} (epoch={epoch}, step={step})")
+        logger.info(f"Saved checkpoint to {filepath}")
     
     @staticmethod
-    def load_checkpoint(filepath: str, model: TransformerLM = None, optimizer: torch.optim.Optimizer = None,
-                       load_optimizer: bool = True) -> Dict[str, Any]:
+    def load_checkpoint(filepath: str, device: str = 'cpu') -> Dict[str, Any]:
         """
-        Load model checkpoint.
+        Load checkpoint from file.
         
         Args:
             filepath: Path to checkpoint
-            model: Model to load weights into (optional)
-            optimizer: Optimizer to load state into (optional)
-            load_optimizer: Whether to load optimizer state
+            device: Device to load onto
         
         Returns:
             Checkpoint dictionary
         """
-        if not Path(filepath).exists():
-            logger.error(f"Checkpoint not found: {filepath}")
-            return {}
-        
-        checkpoint = torch.load(filepath, map_location='cpu')
-        
-        if model is not None:
-            model.load_state_dict(checkpoint['model_state_dict'])
-            logger.info(f"Loaded model weights from {filepath}")
-        
-        if optimizer is not None and load_optimizer and 'optimizer_state_dict' in checkpoint:
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            logger.info(f"Loaded optimizer state from {filepath}")
-        
-        logger.info(f"Loaded checkpoint: epoch={checkpoint.get('epoch', 0)}, step={checkpoint.get('step', 0)}")
-        
+        checkpoint = torch.load(filepath, map_location=device)
+        logger.info(f"Loaded checkpoint from {filepath}")
         return checkpoint
     
     @staticmethod
-    def load_model_from_checkpoint(filepath: str, device: str = 'cpu') -> TransformerLM:
+    def load_model_from_checkpoint(checkpoint_path: str, model_class = None, 
+                                   device: str = 'cpu'):
         """
-        Load a complete model from checkpoint.
+        Load model from checkpoint file.
         
         Args:
-            filepath: Path to checkpoint
-            device: Device to load model to
+            checkpoint_path: Path to checkpoint
+            model_class: Model class (optional, will infer from checkpoint)
+            device: Device to load model on
         
         Returns:
             Loaded model
         """
-        checkpoint = torch.load(filepath, map_location=device)
+        checkpoint = CheckpointManager.load_checkpoint(checkpoint_path, device)
         
-        # Recreate model from config
-        config = checkpoint['model_config']
-        model = TransformerLM.from_config(config)
+        # If model class provided, create instance
+        if model_class and 'model_config' in checkpoint:
+            config = checkpoint['model_config']
+            model = model_class(**config)
+        else:
+            logger.error("Model class required to load from checkpoint")
+            return None
         
-        # Load weights
+        # Load state dict
         model.load_state_dict(checkpoint['model_state_dict'])
-        model.to(device)
+        model = model.to(device)
         model.eval()
         
-        logger.info(f"Loaded model from {filepath}")
-        
+        logger.info(f"Loaded model on device: {device}")
         return model
     
     @staticmethod
-    def find_latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
+    def load_optimizer_from_checkpoint(checkpoint_path: str, optimizer) -> int:
         """
-        Find the latest checkpoint in a directory.
+        Load optimizer state from checkpoint.
         
         Args:
-            checkpoint_dir: Directory containing checkpoints
+            checkpoint_path: Path to checkpoint
+            optimizer: Optimizer instance to load state into
         
         Returns:
-            Path to latest checkpoint, or None if no checkpoints found
+            Starting epoch/step
         """
-        checkpoint_path = Path(checkpoint_dir)
-        if not checkpoint_path.exists():
-            return None
+        checkpoint = CheckpointManager.load_checkpoint(checkpoint_path)
         
-        # Find all .pt files
-        checkpoints = list(checkpoint_path.glob('*.pt'))
-        if not checkpoints:
-            return None
+        if 'optimizer_state_dict' in checkpoint:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            logger.info("Loaded optimizer state")
         
-        # Return most recently modified
-        latest = max(checkpoints, key=lambda p: p.stat().st_mtime)
-        return str(latest)
+        return checkpoint.get('epoch', 0)
